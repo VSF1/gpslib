@@ -22,6 +22,7 @@ pub mod gps {
     use crate::nmea::parse_nmea::parse_sentence;
     use crate::nmea::rmc::{parse_rmc, RmcData};
     use crate::nmea::vtg::{parse_vtg, VtgData};
+    use crate::pmtk::pmtk_sys_msg::{parse_pmtk_sys_msg, SysMsgData};
 
     /// Opens the port to the GPS, probably /dev/serial0
         /// Default baud rate is 9600
@@ -91,9 +92,12 @@ pub mod gps {
         GSV(Vec<Satellites>),
         GLL(GllData),
         RMC(RmcData),
+        PMTKSYSMSG(SysMsgData),
+        DATA(String),
         NoConnection,
         InvalidBytes,
         InvalidSentence,
+        
     }
 
     /// This is the main struct around which all commands are centered. It allows for communication
@@ -162,7 +166,8 @@ pub mod gps {
                     let sentence: Option<Vec<&str>> = parse_sentence(string.as_str());
                     if sentence.is_some() {
                         let sentence = sentence.unwrap();
-                        let header = sentence.get(0).unwrap();
+                        let header = sentence.get(0).unwrap(); 
+                        println!("header {}", header);
                         // At this point sentences needs to be is_valid str.
                         if &header[3..5] == "GG" {
                             return GpsSentence::GGA(parse_gga(sentence));
@@ -192,9 +197,12 @@ pub mod gps {
                                 };
                             }
                             return GpsSentence::GSV(gsv_values);
+                        } else if &header[1..8] == "PMTK010" {                            
+
+                            return GpsSentence::PMTKSYSMSG(parse_pmtk_sys_msg(sentence));
                         }
-                    }
-                    GpsSentence::InvalidSentence
+                    }                    
+                    GpsSentence::InvalidSentence                    
                 }
             };
         }

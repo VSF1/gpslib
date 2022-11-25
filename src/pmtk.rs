@@ -18,6 +18,20 @@
 //! ## PMTK return formats
 //! Depending on the command given, the return values change.
 //!
+pub(crate) mod pmtk_sys_msg {
+    use serde::{Serialize, Deserialize};
+
+    #[derive(PartialEq, Debug, Default, Serialize, Deserialize, Clone)]
+    pub struct SysMsgData {
+        pub msg: i8,
+    }
+    pub fn parse_pmtk_sys_msg(args: Vec<&str>) -> SysMsgData {
+        let msg: i8 = args.get(1).unwrap().parse().unwrap_or(0);
+        return SysMsgData { 
+            msg,
+        };
+    } 
+} 
 
 pub mod send_pmtk {
     //! Contains all the pmtk commands that can be sent.
@@ -47,7 +61,27 @@ pub mod send_pmtk {
         Success,
         NoPacket,
     }
-
+    
+    #[derive(Debug, PartialEq)]
+    /// # PMTK182 input value
+    ///
+    /// - Invalid (No such command)
+    pub enum Pmtk181SetupLogCtl {
+        // format: $PMTK182,1,arg1,arg2*checksum\r\n        
+        Invalid,
+        // 1
+        LogNow,
+        // 2 
+        RcdField,
+        // 3
+        BySec,
+        // 4
+        ByDis,
+        // 5
+        BySpd,
+        // 6
+        RcdMethod
+    }
     #[derive(Debug, PartialEq)]
     /// Dgps (Differential GPS) mode is the usage of ground stations to aid in the accuracy of position.
     /// - NoDGPS: Default
@@ -783,6 +817,77 @@ pub mod send_pmtk {
             } else {
                 self.send_command("PMTK352,1")
             }
+            self.pmtk_001(10)
+        }
+
+        ///
+        /// LOG_API
+        /// 
+        /// setup log ctl
+        pub fn pmtk_182_api_setup_log_ctl(&mut self, arg1: i8, arg2: i8) -> Pmtk001Ack {
+            self.send_command(format!("PMTK182,1,{},{}", arg1, arg2).as_str());
+            self.pmtk_001(10)
+        }
+
+        /// query log status
+        pub fn pmtk_182_api_query_log_status(&mut self, arg1: i8, arg2: i8) -> Pmtk001Ack {
+            match arg1{
+                9=>self.send_command(format!("PMTK182,2,{},{}", arg1, arg2).as_str()),
+                _=> self.send_command(format!("PMTK182,2,{}", arg1).as_str()),                
+            };
+            self.pmtk_001(10)
+        }
+        /// return log status
+        pub fn pmtk_182_api_return_log_status(&mut self, arg1: i8, arg2: i8) -> Pmtk001Ack {
+            self.send_command(format!("PMTK182,3,{},{}", arg1, arg2).as_str());
+            self.pmtk_001(10)
+        }
+        /// start log
+         pub fn pmtk_182_api_start_log(&mut self) -> Pmtk001Ack {
+            self.send_command("PMTK182,4");
+            self.pmtk_001(10)
+        }
+        /// stop log
+        pub fn pmtk_182_api_stop_log(&mut self) -> Pmtk001Ack {
+            self.send_command("PMTK182,5");
+            self.pmtk_001(10)
+        }
+        /// format log 
+        pub fn pmtk_182_api_format_log(&mut self, arg1: i8, addr: i8) -> Pmtk001Ack {
+            match arg1{
+                2=>self.send_command(format!("PMTK182,6,{},{}", arg1, addr).as_str()),                
+                _=>self.send_command(format!("PMTK182,6,{}", arg1).as_str()),
+            };
+            self.pmtk_001(10)
+        }
+        /// read log 
+        pub fn pmtk_182_api_read_log(&mut self, addr: i8, len: i8) -> Pmtk001Ack {
+            self.send_command(format!("PMTK182,7,{},{}", addr, len).as_str());
+            self.pmtk_001(10)
+        }
+        /// log data output
+        pub fn pmtk_182_api_log_data_output(&mut self, addr: i8, data: i8) -> Pmtk001Ack {
+            self.send_command(format!("PMTK182,8,{},{}", addr, data).as_str());
+            self.pmtk_001(10)
+        }        
+        /// init log
+        pub fn pmtk_182_api_init_log(&mut self) -> Pmtk001Ack {
+            self.send_command("PMTK182,9");
+            self.pmtk_001(10)
+        }
+        /// enable log
+        pub fn pmtk_182_api_enable_log(&mut self) -> Pmtk001Ack {
+            self.send_command("PMTK182,10");
+            self.pmtk_001(10)        
+        }
+        /// enable log
+        pub fn pmtk_182_api_disable_log(&mut self) -> Pmtk001Ack {
+            self.send_command("PMTK182,11");
+            self.pmtk_001(10)
+        }            
+        /// write log 
+        pub fn pmtk_182_api_write_log(&mut self, addr: i8, data: i8) -> Pmtk001Ack {
+            self.send_command(format!("PMTK182,12,{},{}", addr, data).as_str());
             self.pmtk_001(10)
         }
     }
