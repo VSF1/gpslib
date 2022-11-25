@@ -1,8 +1,12 @@
+use std::env;
 use adafruit_gps::{Gps, GpsSentence};
 use adafruit_gps::NmeaOutput;
 
 fn main() {
-    let mut gps = Gps::new("/dev/serial0", "9600");
+    // Args are baud_rate, port name.
+    let args: Vec<String> = env::args().collect(); 
+//  let mut gps = Gps::new("/dev/serial0", "9600");
+    let mut gps = Gps::new(args.get(2).unwrap(), args.get(1).unwrap());
     gps.pmtk_314_api_set_nmea_output(NmeaOutput { gga: 1, gsa: 1, gsv: 1, gll: 1, rmc: 1, vtg: 1, pmtkchn_interval: 1 });
     let _r = gps.pmtk_220_set_nmea_updaterate("1000");
     loop {
